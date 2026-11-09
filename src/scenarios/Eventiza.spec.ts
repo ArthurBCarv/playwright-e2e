@@ -1,14 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-test.use({
-  channel: undefined,
-  launchOptions: {
-    executablePath: '/opt/vivaldi/vivaldi-bin',
-    // Sem essa flag o Vivaldi sofre SIGSEGV ao ser iniciado pelo Playwright
-    args: ['--disable-vivaldi']
-  }
-});
-
 test.describe('Eventiza E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('https://eventiza.com.br/', {
