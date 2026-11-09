@@ -7,9 +7,26 @@ test.use({
 
 test.describe('Eventiza E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('https://eventiza.com.br/', {
-      waitUntil: 'domcontentloaded'
+    page.on('pageerror', error => {
+      console.error(`[Eventiza] Erro JavaScript: ${error.message}`);
     });
+    await page.goto('https://eventiza.com.br/', {
+      // O HTML pode estar visível enquanto a navegação ainda está carregando.
+      // Cada cenário aguarda os elementos necessários antes de interagir.
+      waitUntil: 'commit'
+    });
+  });
+
+  test.afterEach(async ({ page }, testInfo) => {
+    if (testInfo.status !== testInfo.expectedStatus && !page.isClosed()) {
+      console.error('[Eventiza] Diagnóstico da página:', {
+        url: page.url(),
+        headings: await page.locator('h1, h2, h3').allTextContents(),
+        content: (
+          await page.locator('body').innerText({ timeout: 5000 })
+        ).slice(0, 3000)
+      });
+    }
   });
 
   test('deve exibir nenhum resultado ao buscar evento inexistente', async ({
@@ -40,10 +57,13 @@ test.describe('Eventiza E2E', () => {
     const eventName = await firstEvent
       .getByRole('heading', { level: 3 })
       .innerText();
+    const eventHref = await firstEvent.getAttribute('href');
+    expect(eventHref).toMatch(/^\/evento\//);
+    const eventUrl = new URL(eventHref!, page.url()).href;
 
     await firstEvent.click();
 
-    await expect(page).toHaveURL(/\/evento\//);
+    await expect(page).toHaveURL(eventUrl);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(eventName);
   });
 
