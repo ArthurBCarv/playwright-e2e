@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
 
+test.use({
+  // Usa o Chromium instalado pelo Playwright tanto localmente quanto no CI.
+  channel: 'chromium'
+});
+
 test.describe('Eventiza E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('https://eventiza.com.br/', {
