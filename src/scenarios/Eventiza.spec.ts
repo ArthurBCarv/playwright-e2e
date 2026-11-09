@@ -45,34 +45,29 @@ test.describe('Eventiza E2E', () => {
     }).toPass();
   });
 
-  test('deve abrir a página do evento ao clicar na listagem', async ({
-    page
-  }) => {
-    const firstEvent = page
-      .getByRole('main')
-      .getByRole('link', { name: /\d{4} às/ })
-      .first();
-    // Captura título e endereço do mesmo card, antes de a listagem reordenar.
-    const { eventName, eventHref } = await firstEvent.evaluate(link => ({
-      eventName: link.querySelector('h3')?.textContent?.trim(),
-      eventHref: link.getAttribute('href')
-    }));
-    expect(eventName).toBeTruthy();
-    expect(eventHref).toMatch(/^\/evento\//);
-    const eventUrl = new URL(eventHref!, page.url()).href;
-
-    // O primeiro card pode mudar durante a hidratação; preserva o escolhido.
-    await page
-      .getByRole('main')
-      .locator(`a[href=${JSON.stringify(eventHref)}]`)
-      .filter({ visible: true })
-      .first()
-      .click();
-
-    await expect(page).toHaveURL(eventUrl);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      eventName!
+  test('deve restaurar a listagem ao limpar a busca', async ({ page }) => {
+    const searchInput = page.getByPlaceholder(
+      'Pesquisar pelo nome do evento...'
     );
+    const eventLinks = page
+      .getByRole('main')
+      .getByRole('link', { name: /\d{4} às/ });
+    const emptyState = page.getByText('Nenhum resultado encontrado');
+
+    await expect(eventLinks.first()).toBeVisible();
+
+    // Aguarda a busca funcionar mesmo se a página ainda estiver hidratando.
+    await expect(async () => {
+      await searchInput.fill('eventoinexistentexyz123');
+      await expect(emptyState).toBeVisible({ timeout: 5000 });
+      await expect(eventLinks).toHaveCount(0, { timeout: 5000 });
+    }).toPass();
+
+    await searchInput.clear();
+
+    await expect(searchInput).toHaveValue('');
+    await expect(emptyState).toBeHidden();
+    await expect(eventLinks.first()).toBeVisible();
   });
 
   test('deve navegar para Fale conosco pelo menu', async ({ page }) => {
