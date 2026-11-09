@@ -11,9 +11,7 @@ test.describe('Eventiza E2E', () => {
       console.error(`[Eventiza] Erro JavaScript: ${error.message}`);
     });
     await page.goto('https://eventiza.com.br/', {
-      // O HTML pode estar visível enquanto a navegação ainda está carregando.
-      // Cada cenário aguarda os elementos necessários antes de interagir.
-      waitUntil: 'commit'
+      waitUntil: 'domcontentloaded'
     });
   });
 
@@ -54,23 +52,34 @@ test.describe('Eventiza E2E', () => {
       .getByRole('main')
       .getByRole('link', { name: /\d{4} às/ })
       .first();
-    const eventName = await firstEvent
-      .getByRole('heading', { level: 3 })
-      .innerText();
-    const eventHref = await firstEvent.getAttribute('href');
+    // Captura título e endereço do mesmo card, antes de a listagem reordenar.
+    const { eventName, eventHref } = await firstEvent.evaluate(link => ({
+      eventName: link.querySelector('h3')?.textContent?.trim(),
+      eventHref: link.getAttribute('href')
+    }));
+    expect(eventName).toBeTruthy();
     expect(eventHref).toMatch(/^\/evento\//);
     const eventUrl = new URL(eventHref!, page.url()).href;
 
-    await firstEvent.click();
+    // O primeiro card pode mudar durante a hidratação; preserva o escolhido.
+    await page
+      .getByRole('main')
+      .locator(`a[href=${JSON.stringify(eventHref)}]`)
+      .filter({ visible: true })
+      .first()
+      .click();
 
     await expect(page).toHaveURL(eventUrl);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(eventName);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      eventName!
+    );
   });
 
   test('deve navegar para Fale conosco pelo menu', async ({ page }) => {
     await page
       .getByRole('banner')
       .getByRole('link', { name: 'Fale conosco' })
+      .filter({ visible: true })
       .first()
       .click();
 
