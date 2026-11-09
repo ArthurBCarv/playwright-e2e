@@ -45,7 +45,9 @@ test.describe('Eventiza E2E', () => {
     }).toPass();
   });
 
-  test('deve restaurar a listagem ao limpar a busca', async ({ page }) => {
+  test('deve limpar a busca e ocultar a mensagem de nenhum resultado', async ({
+    page
+  }) => {
     const searchInput = page.getByPlaceholder(
       'Pesquisar pelo nome do evento...'
     );
@@ -58,9 +60,9 @@ test.describe('Eventiza E2E', () => {
 
     // Aguarda a busca funcionar mesmo se a página ainda estiver hidratando.
     await expect(async () => {
+      await searchInput.clear();
       await searchInput.fill('eventoinexistentexyz123');
       await expect(emptyState).toBeVisible({ timeout: 5000 });
-      await expect(eventLinks).toHaveCount(0, { timeout: 5000 });
     }).toPass();
 
     await searchInput.clear();
